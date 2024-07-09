@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/Evilcmd/GO-Blog-Aggregator/internal/database"
 	"github.com/joho/godotenv"
@@ -29,6 +30,8 @@ func main() {
 
 	dbQueries := database.New(db)
 	apiConfig := apiConfigDefn{dbQueries, database.User{}}
+
+	go rssWorker(dbQueries, 10, time.Minute*10)
 
 	mux := http.NewServeMux()
 
@@ -56,6 +59,9 @@ func main() {
 
 	// get all feed follows
 	mux.HandleFunc("GET /v1/feed_follows", apiConfig.authenticationMiddleware(apiConfig.getAllFeedFollows))
+
+	// get posts of a particular user
+	mux.HandleFunc("GET /v1/posts", apiConfig.authenticationMiddleware(apiConfig.GetUserPosts))
 
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%v", PORT),
